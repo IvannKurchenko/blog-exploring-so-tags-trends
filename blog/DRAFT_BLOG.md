@@ -10,7 +10,7 @@ next period or calculate trajectory (e.g. via linear regression).
 SO trends could be a helpful source of understanding of tech industry development and trends.
 
 ### How we are going to do?
-Methodoly
+Methodology
 get treds for certain tag (technology, topic etc) by number of created posts and upvotes count.
 https://insights.stackoverflow.com/trends?tags=r%2Cstatistics - calculate only relative size questions.
 Questions might not complete whole history:
