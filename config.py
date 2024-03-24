@@ -1,5 +1,5 @@
 # Current mode of operation
-current_mode = 'test'  # Change to 'analysis' as needed
+current_mode = 'analysis'  # Change to 'analysis' or 'test' as needed.
 
 config = {
     'test': 'data/test/',
