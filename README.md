@@ -10,6 +10,18 @@ Repository layout:
 - data/test
 - blog
 
+For local setup:
+
+Setup venv
+`python3 -m venv exploring_so_tags_trends`
+
+Activate venv
+`source exploring_so_tags_trends/bin/activate`
+
+Install dependencies:
+`pip3 install -r requirements.txt`
+
+
 
 How to run
 (test mode)
