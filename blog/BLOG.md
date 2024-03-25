@@ -1,11 +1,16 @@
+## Exploring StackOverflow tags trends
+
 ### Short description
 Exploring top trending tags on StackOverflow by number of submitted questions, answers and votes.
 
 ### Introduction
-TODO: 
-- Motivation - broader picture then https://insights.stackoverflow.com/trends (not only questions)
-- Source data : https://archive.org/download/stackexchange/ - various stack exchange dumps
-- Implementation details are at the end; 
+[Stackoverflow Trends](https://insights.stackoverflow.com/trends) is a great place to see how progress of certain tag
+over time. However, it provides possibility to show trends for requested tags. Primary motivation of this post is to
+explore and compare all tags trends between each other for past several years, to find the most rapidly growing.
+
+For this we are going to use ["Stack Exchange Data Dump" published to Internet Archive](https://archive.org/details/stackexchange)
+that contains various data dumps for whole "Stack Exchange" websites family. In particular, we are going to use posts and votes data.
+First we will start with some high level ideas, then proceed found results and cover some implementation details at the end.   
 
 ### Data model
 TODO: 
