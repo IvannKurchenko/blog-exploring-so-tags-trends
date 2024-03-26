@@ -63,7 +63,6 @@ Which in conjunction with the `Post` data model can be illustrated as:
 ![](images/2_post_vote_model.png)
 
 ### Methodology
-
 TODO:
 - main metric is a tag share - inspired by "market share" (https://en.wikipedia.org/wiki/Market_share)
 - Tag Rank is a position of a tag certain point of time based on its share. 
@@ -71,6 +70,24 @@ TODO:
 - posts creation based trends - 
 - votes creation based trends
 - Sum up - join results find tags that ver top 20 fastest growing among two categories. 
+
+#### Metrics
+Since we have data model, we can proceed to describing to main metric which trend or trajectory will be calculated.
+Naive approach might be to calculate number of posts or votes created over time for certain tag.
+But absolute numbers do not reflect comparison. That's why we need some relative metric, which can be called `tag-share`,
+similarly to well known [Market_share](https://en.wikipedia.org/wiki/Market_share) definition.
+
+In terms of created posts (both questions and answers) it can be expressed as:
+`posts-tag-share = tag-total-posts-created / total-posts-created * 100`
+
+where: 
+- `tag-total-posts-created` - the number of posts created with a tag up until a certain point of time;
+- `total-posts-created` - the number of all kind of posts created up until a certain point of time;
+
+By analogy, for votes data it will look like:
+`votes-tag-share = tag-total-votes-created / total-votes-created * 100`
+
+Although `tag-share`... 
 
 
 ### Posts creation trends
