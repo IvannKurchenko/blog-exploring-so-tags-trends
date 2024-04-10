@@ -225,30 +225,35 @@ This one is also very well known SQL window function that is also [available in 
 
 #### Trending tags
 Now we can proceed to the most interesting part and see top 20 most trending tags for the past 3 years in terms of `TagShare` increase:
-```csv
-|       Tag    | StartTagShare | EndTagShare | TagShareDelta | StartTagRank | EndTagRank | TagRankDelta |
-|--------------|---------------|-------------|---------------|--------------|------------|--------------|
-| python       | 8.810830      | 9.339611    | 0.528781      | 2.0          | 2.0        | -0.0         |
-| reactjs      | 1.241718      | 1.588594    | 0.346876      | 28.0         | 20.0       | 8.0          |
-| flutter      | 0.436962      | 0.641511    | 0.204549      | 80.0         | 57.0       | 23.0         |
-| typescript   | 0.805759      | 0.961976    | 0.156217      | 42.0         | 38.0       | 4.0          |
-| pandas       | 0.952074      | 1.098120    | 0.146046      | 37.0         | 33.0       | 4.0          |
-| r            | 1.613965      | 1.758538    | 0.144573      | 19.0         | 19.0       | -0.0         |
-| node.js      | 1.796068      | 1.894887    | 0.098818      | 18.0         | 18.0       | -0.0         |
-| dart         | 0.304894      | 0.399665    | 0.094771      | 121.0        | 90.0       | 31.0         |
-| python-3.x   | 0.982737      | 1.077354    | 0.094617      | 36.0         | 34.0       | 2.0          |
-| dataframe    | 0.502394      | 0.594033    | 0.091639      | 64.0         | 59.0       | 5.0          |
-```
+| Tag                  | StartTagShare | EndTagShare | TagShareDelta | StartTagRank | EndTagRank | TagRankDelta |
+|----------------------|---------------|-------------|---------------|--------------|------------|--------------|
+| python               | 8.810830      | 9.339611    | 0.528781      | 2.0          | 2.0        | -0.0         |
+| reactjs              | 1.241718      | 1.588594    | 0.346876      | 28.0         | 20.0       | 8.0          |
+| flutter              | 0.436962      | 0.641511    | 0.204549      | 80.0         | 57.0       | 23.0         |
+| typescript           | 0.805759      | 0.961976    | 0.156217      | 42.0         | 38.0       | 4.0          |
+| pandas               | 0.952074      | 1.098120    | 0.146046      | 37.0         | 33.0       | 4.0          |
+| r                    | 1.613965      | 1.758538    | 0.144573      | 19.0         | 19.0       | -0.0         |
+| node.js              | 1.796068      | 1.894887    | 0.098818      | 18.0         | 18.0       | -0.0         |
+| dart                 | 0.304894      | 0.399665    | 0.094771      | 121.0        | 90.0       | 31.0         |
+| python-3.x           | 0.982737      | 1.077354    | 0.094617      | 36.0         | 34.0       | 2.0          |
+| dataframe            | 0.502394      | 0.594033    | 0.091639      | 64.0         | 59.0       | 5.0          |
+| kotlin               | 0.289945      | 0.374375    | 0.084430      | 130.0        | 97.0       | 33.0         |
+| spring-boot          | 0.384552      | 0.460593    | 0.076042      | 92.0         | 71.0       | 21.0         |
+| next.js              | 0.032364      | 0.101599    | 0.069234      | 1107.0       | 354.0      | 753.0        |
+| react-native         | 0.379365      | 0.447968    | 0.068603      | 95.0         | 78.0       | 17.0         |
+| docker               | 0.609848      | 0.677211    | 0.067362      | 57.0         | 53.0       | 4.0          |
+| amazon-web-services  | 0.477610      | 0.543093    | 0.065484      | 70.0         | 63.0       | 7.0          |
+| visual-studio-code   | 0.274666      | 0.335564    | 0.060898      | 136.0        | 111.0      | 25.0         |
+| vue.js               | 0.299155      | 0.358858    | 0.059704      | 126.0        | 103.0      | 23.0         |
+| firebase             | 0.389395      | 0.442814    | 0.053419      | 89.0         | 81.0       | 8.0          |
+| swiftui              | 0.096526      | 0.148999    | 0.052473      | 398.0        | 253.0      | 145.0        |
+
 
 `TagShare` dynamics over time looks following:
 ![tag_share_trends.png](images%2Ftag_share_trends.png)
 
 `TagRank` timeline for these tags: 
 ![tag_rank_trends.png](images%2Ftag_rank_trends.png)
-
-```
-
-```
 
 ### Conclusion
 Stackoverflow tags trends might shad some light on tech trends using numbers. 
