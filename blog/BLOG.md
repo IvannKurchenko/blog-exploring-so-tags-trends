@@ -10,16 +10,19 @@ explore and compare all tags trends between each other for past several years, t
 
 For this we are going to use ["Stack Exchange Data Dump" published to Internet Archive](https://archive.org/details/stackexchange)
 that contains various data dumps for whole "Stack Exchange" websites family. In particular, we are going to use posts and votes data.
-First we will start with some high level ideas, then proceed found results and cover some implementation details at the end.   
+First we will start with some high level ideas, then proceed to data explosion, later show found results and cover some implementation details at the end.   
+All analysis was done using Python, Jupyter, Pandas, NumPy and matplotlib. In the most important parts of code are present, but unnecessary details are omitted for readability. 
 
-### Data model
+### Available data
 Stack Exchange data dump is a pretty broad one and covers all sorts of data related to users, activity etc. 
-For more details, you can see data set description at [readme.txt](https://ia904700.us.archive.org/6/items/stackexchange/readme.txt) file.
-In scope of this exploration, we are interested in just a subset of following files:
-- `Posts.xml` - all posts data;
-- `Votes.xml` - all votes data;
+For more details, you can see the data set description at [readme.txt](https://ia904700.us.archive.org/6/items/stackexchange/readme.txt) file.
 
-`Posts.xml` contains both questions and answers. Fields that are used for analysis are the following:   
+First of all, we need to choose data that will be used to gain understanding about tags popularity.
+Tag popularity can be identified as a summary of all activity related to a tag. For instance, asking a question,
+answering a question, commenting on a post and voting for a post.
+
+At first glance, we can consider the following data files and fields as candidates for such analysis:
+`Posts.xml` - posts data. Following fields can be used:   
 ```
 - Id 
 - PostTypeId
@@ -30,14 +33,14 @@ In scope of this exploration, we are interested in just a subset of following fi
 - DeletionDate
 - ClosedDate, e.g.:"2009-03-11T12:51:01.480" 
 - Tags
+- Score
+- ViewCount
+- AnswerCount
+- CommentCount
+- FavoriteCount
 ```
-Despite its flat structure, data model it represents can be shown with the following diagram:
-![](images/1_question_answer_model.png)
 
-So, questions have one-to-many relations with answers and it might be fair to say that answers implicitly inherits 
-its parent question `Tags`. 
-
-Similarly, for `Votes.xml` file the fields that will be used are:
+`Votes.xml` - post votes data. Following fields can be used:
 ``` 
 - Id 
 - PostId 
@@ -59,97 +62,195 @@ Similarly, for `Votes.xml` file the fields that will be used are:
   - 16: ApproveEditSuggestion
 - CreationDate
 ```
-Which in conjunction with the `Post` data model can be illustrated as:  
-![](images/2_post_vote_model.png)
+
+`Comments.xml` - posts comments data. Following fields can be used:
+```
+- Id
+- PostId 
+- Score 
+- CreationDate, e.g.:"2008-09-06T08:07:10.730" 
+```
+
+It is easy to notice that supplied data has some redundancy:
+- `Posts.xml - Score` - is a sum of all votes that are also stored in `Votes.xml` file.
+- `Posts.xml - AnswerCount` - is a sum of all answer posts (e.g. `PostTypeId = 2`) for a question, that contains in same file.
+- `Posts.xml - CommentCount` - is a sum of all comments that are also stored in `Comments.xml` file.
+
+We can use either history of some activity, like voting via `Votes.xml` or its result in `Posts.xml - Score`.
+Later in the post, we will find that using resulting numbers could be an option to go. 
+
+### Initial data selection
+It looks like a lot of dimensions to use for further analysis. Let's try to discover whether we can reduce its number.  
+
+We can begin from finding proportion of `Posts` which are marked as favorite, have comments, views and have scores.
+In other words, find number of posts which fields `FavoriteCount`, `CommentCount`, `ViewCount`, `Score` are greater than 0.
+Aside note: `Score` less than 0, means that it received votes, but negative one. Nonetheless, for simplicity lets consider positively voted posts only.
+
+Calculations logic looks in the following way: 
+```python
+posts_size = posts_df.size
+favorited_posts_size = posts_df[posts_df['FavoriteCount'] > 0.0].size
+commented_posts_size = posts_df[posts_df['CommentCount'] > 0.0].size
+viewed_posts_size = posts_df[posts_df['ViewCount'] > 0.0].size
+scored_posts_size = posts_df[posts_df['Score'] > 0.0].size
+
+favorited_posts_proportion = favorited_posts_size / posts_size
+commented_posts_proportion = commented_posts_size / posts_size
+viewed_posts_proportion = viewed_posts_size / posts_size
+scored_posts_proportion = scored_posts_size / posts_size
+
+print(f"All Posts: {posts_size:,}")
+print(f"Favorited Posts: {favorited_posts_size:,} ({favorited_posts_proportion:.2%})")
+print(f"Commented Posts: {commented_posts_size:,} ({commented_posts_proportion:.2%})")
+print(f"Viewed Posts: {viewed_posts_size:,} ({viewed_posts_proportion:.2%})")
+print(f"Scored Posts: {scored_posts_size:,} ({scored_posts_proportion:.2%})")
+```
+
+And results are:
+```
+All Posts: 657,239,539
+Favorited Posts: 1,518 (0.00%)
+Commented Posts: 331,794,034 (50.48%)
+Viewed Posts: 264,899,404 (40.30%)
+Scored Posts: 358,470,134 (54.54%)
+```
+`FavoriteCount` does not look like a strong signal, and it can be easily neglected.
+
+One more approach for dimensionality reduction is to find correlation.
+```python
+posts_df[['CommentCount', 'ViewCount', 'Score']].corr().to_markdown()
+```
+
+Bellow is the correlation matrix between three remaining fields:
+
+|              |   CommentCount |   ViewCount |     Score |
+|:-------------|---------------:|------------:|----------:|
+| CommentCount |     1          |  0.00796425 | 0.0839743 |
+| ViewCount    |     0.00796425 |  1          | 0.761194  |
+| Score        |     0.0839743  |  0.761194   | 1         |
+
+As you can see, `Score` and `ViewCount` has pretty strong correlation of slightly more than 76%, which means that one of them can be ignored.
+Since there is a historical data for `Score` in `Votes.xml` file, but not for `ViewCount`, the former field can be eliminated.\
+
+### Result numbers versus history
+As a result of previous steps, we have the following signals to use for tag trend:
+- Posts creation - present in `Posts.xml` file and `CreationDate` field;
+- Votes creation - present in: 
+  - `Votes.xml` file and `CreationDate` field;
+  - `Posts.xml` file and `Score` field that reflects sum all votes;
+- Comments creation - present in: 
+  - `Comments.xml` file and `CreationDate` field;
+  - `Posts.xml` file and `CommentCount` field that number of all comments;
+
+There is an overlap in between votes and comments history and summary numbers in scope of a post.
+So which one shall history of voting or commenting be taken into account?
+
+Let's begin with votes and see what is the dynamics of voting. To make it we can calculate date difference between post `CreationDate` and votes `CreationDate`:
+```python
+posts_votes_df = pd.merge(posts_creation_df, votes_creation_df, left_on='Id', right_on='PostId', suffixes=('_post', '_vote'))
+votes_months_difference_seq = ((posts_votes_df['CreationDate_vote'] - posts_votes_df['CreationDate_post']).dt.days / 30).round()
+months_difference_counts = months_difference_seq.value_counts(normalize=True) * 100
+print(months_difference_counts.head(10))
+```
+
+Results are following:
+```
+-0.0     31.868489
+ 1.0      1.590028
+ 2.0      1.144887
+ 4.0      1.003856
+ 3.0      0.978432
+ 6.0      0.962302
+ 8.0      0.926534
+ 10.0     0.920690
+ 5.0      0.913960
+ 12.0     0.903898
+```
+
+Which also can visualise via matplotlib:
+![votes_creation_duration.png](images%2Fvotes_creation_duration.png)
+Not a lot of surprise to see [long tail](https://en.wikipedia.org/wiki/Long_tail) in this distribution. 
+Nearly `30%` of votes were given in the first month of post existence.
+
+Now we can discover dynamics for posts commenting.
+```python
+posts_comments_df = pd.merge(posts_creation_df, comments_creation_df, left_on='Id', right_on='PostId', suffixes=('_post', '_comment'))
+comments_months_difference_seq = ((posts_comments_df['CreationDate_comment'] - posts_comments_df['CreationDate_post']).dt.days / 30).round()
+comments_months_difference_counts = comments_months_difference_seq.value_counts(normalize=True) * 100
+print(comments_months_difference_counts.head(10))
+```
+
+Prints the following:
+```
+0.0     90.935936
+1.0      0.911582
+2.0      0.438805
+3.0      0.318881
+4.0      0.291622
+5.0      0.244062
+6.0      0.240956
+8.0      0.210341
+7.0      0.209174
+10.0     0.192652
+```
+And visualise all numbers by using matplotlib:
+![comments_creation_duration.png](images%2Fcomments_creation_duration.png)
+
+Pretty similar picture can be seen for comments. A major `90%` of comments were created in the first month.
+
+Bottom line, to take votes and comments into account `CommentCount` and `Score` fields from `Posts.xml` file are going to be used instead of respective history for each activity.
 
 ### Methodology
-TODO:
-- main metric is a tag share - inspired by "market share" (https://en.wikipedia.org/wiki/Market_share)
-- Tag Rank is a position of a tag certain point of time based on its share. 
-- idea is to find build trends based on speed of tag share grow over observable period of time.
-- posts creation based trends - 
-- votes creation based trends
-- Sum up - join results find tags that ver top 20 fastest growing among two categories. 
 
 #### Metrics
-Since we have data model, we can proceed to describing to main metric which trend or trajectory will be calculated.
-Naive approach might be to calculate number of posts or votes created over time for certain tag.
-But absolute numbers do not reflect comparison. That's why we need some relative metric, which can be called `tag-share`,
-similarly to well known [Market_share](https://en.wikipedia.org/wiki/Market_share) definition.
+Since we selected a data to work with, we can proceed to actual trends calculations.
+The main idea is to build trends based on speed of tag grow over some observable period of time, for instance 5 years.
 
-In terms of created posts (both questions and answers) it can be expressed as:
-`posts-tag-share = tag-total-posts-created / total-posts-created * 100`
+#### Activity score
+First, lets introduce a notion of main metric which will be used to identify tag grow as: `ActivityScore = Score + CommentCount + 1`
+where `Score`, `CommentCount` are fields from `Posts.xml` and `+1` identifies a fact of created posts (to cover case of post without votes and comments).
+`ActivityScore` as name and definition says, sums up all activity around tag in scope of a post.
 
-where: 
-- `tag-total-posts-created` - the number of posts created with a tag up until a certain point of time;
-- `total-posts-created` - the number of all kind of posts created up until a certain point of time;
+#### Tag share
+At this step we can proceed to describing to main metric which trend or trajectory will be calculated.
+Naive approach might be to calculate sum of `ActivityScore` over time for a certain tag.
+But absolute numbers do not reflect comparison. That's why we need some relative metric, which can be called `tag-share`, similarly to well known [Market_share](https://en.wikipedia.org/wiki/Market_share) definition.
 
-By analogy, for votes data it will look like:
-`votes-tag-share = tag-total-votes-created / total-votes-created * 100`
+In terms of `ActivityScore` it can be expressed as: `TagShare = TagTotlaActivityScore / TotalActivityScore * 100`
+where `TagTotlaActivityScore` is cumulative sum of `ActivityScore` for a certain tag and `TotalActivityScore` is cumulative sum of `ActivityScore` for all posts up until certain point of time.
 
-Although `tag-share`... 
+#### Tag rank
+Although `TagShare` reflects relative tag activity another helpful metric could `TagRank` ,which is a position of a tag certain point of time based on its share.
+This one is also very well known SQL window function that is also [available in Pandas](https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.core.window.rolling.Rolling.rank.html).
 
-
-### Posts creation trends
-TODO:
-- Based on posts (questions and answers) creation;
-- Calculate tag share as `tag-share = tag-total-posts-created / total-posts-created * 100`
-- Show sample data and charts 
-
-### Votes trends
-TODO:
-- Based on posts (questions and answers) creation;
-- Calculate tag share as `tag-share = tag-total-posts-created / total-posts-created * 100`
-- Show sample data and charts 
-
-### Trending tags
-Bellow you can find list with details about the most trending tags for the past 3 years (tag, posts rank increase, votes rank increase)
-
-### Implementation
-
-100GB+ disk space.
-
-Source: https://archive.org/download/stackexchange/
-Download posts :
-```shell
-wget https://archive.org/download/stackexchange/stackoverflow.com-Posts.7z/
+#### Trending tags
+Now we can proceed to the most interesting part and see top 20 most trending tags for the past 3 years in terms of `TagShare` increase:
+```csv
+|       Tag    | StartTagShare | EndTagShare | TagShareDelta | StartTagRank | EndTagRank | TagRankDelta |
+|--------------|---------------|-------------|---------------|--------------|------------|--------------|
+| python       | 8.810830      | 9.339611    | 0.528781      | 2.0          | 2.0        | -0.0         |
+| reactjs      | 1.241718      | 1.588594    | 0.346876      | 28.0         | 20.0       | 8.0          |
+| flutter      | 0.436962      | 0.641511    | 0.204549      | 80.0         | 57.0       | 23.0         |
+| typescript   | 0.805759      | 0.961976    | 0.156217      | 42.0         | 38.0       | 4.0          |
+| pandas       | 0.952074      | 1.098120    | 0.146046      | 37.0         | 33.0       | 4.0          |
+| r            | 1.613965      | 1.758538    | 0.144573      | 19.0         | 19.0       | -0.0         |
+| node.js      | 1.796068      | 1.894887    | 0.098818      | 18.0         | 18.0       | -0.0         |
+| dart         | 0.304894      | 0.399665    | 0.094771      | 121.0        | 90.0       | 31.0         |
+| python-3.x   | 0.982737      | 1.077354    | 0.094617      | 36.0         | 34.0       | 2.0          |
+| dataframe    | 0.502394      | 0.594033    | 0.091639      | 64.0         | 59.0       | 5.0          |
 ```
 
-Download votes :
-```shell
-wget https://archive.org/download/stackexchange/stackoverflow.com-Votes.7z
+`TagShare` dynamics over time looks following:
+![tag_share_trends.png](images%2Ftag_share_trends.png)
+
+`TagRank` timeline for these tags: 
+![tag_rank_trends.png](images%2Ftag_rank_trends.png)
+
 ```
 
-Download read me with documentation:
-```shell
-wget https://archive.org/download/stackexchange/readme.txt
 ```
-
-Install tool to unpack 7z archive:
-```shell
-sudo apt-get update
-sudo apt-get install p7zip-full
-```
-
-Unpack posts archive:
-```shell
-7z x stackoverflow.com-Posts.7z
-```
-
-Unpack votes archive:
-```shell
-7z x stackoverflow.com-Votes.7z
-```
-
-## Prepare raw data
-TODO :
-- For pandas we need csv and not xml;
-- we need only certain attributes so others will be filtered.
-- convert one to another and filter data we don't need;
-  put code of a whole notebook;
 
 ### Conclusion
-TODO:
-- Might shed some light on tech landscape changes
-- Is not a complete view.
-- Source code and data results link.
+Stackoverflow tags trends might shad some light on tech trends using numbers. 
+If you want to explore trend for your favorite topic, you can find data set with calculated metrics at [Kaggle](https://www.kaggle.com/datasets/ivankurchenko/stackoverflow-tags-trends)
+and the complete code with instructions at [GitHub](https://github.com/IvannKurchenko/blog-exploring-so-tags-trends).

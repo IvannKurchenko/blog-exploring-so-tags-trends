@@ -59,6 +59,11 @@ Download votes :
 wget https://archive.org/download/stackexchange/stackoverflow.com-Votes.7z
 ```
 
+Download comments :
+```shell
+wget https://archive.org/download/stackexchange/stackoverflow.com-Comments.7z
+```
+
 Download read me with documentation:
 ```shell
 wget https://archive.org/download/stackexchange/readme.txt
@@ -78,6 +83,11 @@ Unpack posts archive:
 Unpack votes archive:
 ```shell
 7z x stackoverflow.com-Votes.7z
+```
+
+Unpack comments archive:
+```shell
+7z x stackoverflow.com-Comments.7z
 ```
 
 ## Prepare raw data 
