@@ -137,15 +137,15 @@ As a result of previous steps, we have the following signals to use for tag tren
 - Posts creation - present in `Posts.xml` file and `CreationDate` field;
 - Votes creation - present in: 
   - `Votes.xml` file and `CreationDate` field;
-  - `Posts.xml` file and `Score` field that reflects sum all votes;
+  - `Posts.xml` file and `Score` field that reflects the sum all votes;
 - Comments creation - present in: 
   - `Comments.xml` file and `CreationDate` field;
   - `Posts.xml` file and `CommentCount` field that number of all comments;
 
-There is an overlap in between votes and comments history and summary numbers in scope of a post.
-So which one shall history of voting or commenting be taken into account?
+There is an overlap in between votes and comments history and summary numbers in the scope of a post.
+So which one shall the history of voting or commenting be taken into account?
 
-Let's begin with votes and see what is the dynamics of voting. To make it we can calculate date difference between post `CreationDate` and votes `CreationDate`:
+Let's begin with votes and see what is the dynamics of voting. To make it we can calculate the date difference between post `CreationDate` and votes `CreationDate`:
 ```python
 posts_votes_df = pd.merge(posts_creation_df, votes_creation_df, left_on='Id', right_on='PostId', suffixes=('_post', '_vote'))
 votes_months_difference_seq = ((posts_votes_df['CreationDate_vote'] - posts_votes_df['CreationDate_post']).dt.days / 30).round()
@@ -167,7 +167,7 @@ Results are following:
  12.0     0.903898
 ```
 
-Which also can visualise via matplotlib:
+Which also can visualise via `matplotlib`:
 ![votes_creation_duration.png](images%2Fvotes_creation_duration.png)
 Not a lot of surprise to see [long tail](https://en.wikipedia.org/wiki/Long_tail) in this distribution. 
 Nearly `30%` of votes were given in the first month of post existence.
@@ -193,38 +193,43 @@ Prints the following:
 7.0      0.209174
 10.0     0.192652
 ```
-And visualise all numbers by using matplotlib:
+And visualise all numbers by using `matplotlib`:
 ![comments_creation_duration.png](images%2Fcomments_creation_duration.png)
 
-Pretty similar picture can be seen for comments. A major `90%` of comments were created in the first month.
+A pretty similar picture can be seen for comments. A major `90%` of comments were created in the first month.
 
-Bottom line, to take votes and comments into account `CommentCount` and `Score` fields from `Posts.xml` file are going to be used instead of respective history for each activity.
+Bottom line:  to take votes and comments into account `CommentCount` and `Score` fields from `Posts.xml` file are going to be used instead of respective history for each activity.
 
 ### Methodology
 
 #### Metrics
-Since we selected a data to work with, we can proceed to actual trends calculations.
-The main idea is to build trends based on speed of tag grow over some observable period of time, for instance 5 years.
+Since we selected data to work with, we can proceed to actual trend calculations.
+The main idea is to build trends based on the speed of tag growth over some observable period, for instance, 3 years.
 
 #### Activity score
-First, lets introduce a notion of main metric which will be used to identify tag grow as: `ActivityScore = Score + CommentCount + 1`
-where `Score`, `CommentCount` are fields from `Posts.xml` and `+1` identifies a fact of created posts (to cover case of post without votes and comments).
-`ActivityScore` as name and definition says, sums up all activity around tag in scope of a post.
+First, let's introduce a notion of the main metric which will be used to identify tag growth as 
+```
+ActivityScore = Score + CommentCount + 1
+```
+where `Score`, `CommentCount` are fields from `Posts.xml` and `+1` identifies a fact of created posts (to cover the case of a post without votes and comments).
+`ActivityScore` as the name and definition say, sums up all activity around the tag in the scope of a post.
 
 #### Tag share
-At this step we can proceed to describing to main metric which trend or trajectory will be calculated.
-Naive approach might be to calculate sum of `ActivityScore` over time for a certain tag.
-But absolute numbers do not reflect comparison. That's why we need some relative metric, which can be called `tag-share`, similarly to well known [Market_share](https://en.wikipedia.org/wiki/Market_share) definition.
-
-In terms of `ActivityScore` it can be expressed as: `TagShare = TagTotlaActivityScore / TotalActivityScore * 100`
-where `TagTotlaActivityScore` is cumulative sum of `ActivityScore` for a certain tag and `TotalActivityScore` is cumulative sum of `ActivityScore` for all posts up until certain point of time.
+At this step, we can proceed to describe to main metric for which trend or trajectory will be calculated. The naive approach might be to calculate the sum of `ActivityScore` over time for a certain tag.
+However, absolute numbers do not reflect comparison. That's why we need some relative metric, which can be called tag-share, similar to well-known [Market share](https://en.wikipedia.org/wiki/Market_share) definition.
+In terms of `ActivityScore` it can be expressed as:
+```
+TagShare = TagTotlaActivityScore / TotalActivityScore * 100
+```
+where `TagTotalActivityScore` is a cumulative sum of `ActivityScore` for a certain tag and `TotalActivityScore` is a cumulative sum of `ActivityScore` for all posts up until a certain point in time.
 
 #### Tag rank
-Although `TagShare` reflects relative tag activity another helpful metric could `TagRank` ,which is a position of a tag certain point of time based on its share.
-This one is also very well known SQL window function that is also [available in Pandas](https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.core.window.rolling.Rolling.rank.html).
+Although `TagShare` reflects relative tag activity another helpful metric could `TagRank` ,which is a position of a tag certain point in time based on its `TagShare`.
+It is [available in Pandas](https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.core.window.rolling.Rolling.rank.html) so pretty easy to calculate.
 
 #### Trending tags
-Now we can proceed to the most interesting part and see top 20 most trending tags for the past 3 years in terms of `TagShare` increase:
+Now we can proceed to the most interesting part and see the top 20 most trending tags for the past 3 years in terms of `TagShare` increase:
+
 | Tag                  | StartTagShare | EndTagShare | TagShareDelta | StartTagRank | EndTagRank | TagRankDelta |
 |----------------------|---------------|-------------|---------------|--------------|------------|--------------|
 | python               | 8.810830      | 9.339611    | 0.528781      | 2.0          | 2.0        | -0.0         |
